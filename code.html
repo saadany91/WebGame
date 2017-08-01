@@ -1,0 +1,608 @@
+<!DOCTYPE HTML>
+<HTML>
+<HEAD>
+<TITLE>Web Game</TITLE>
+	<STYLE>
+
+		BODY {
+			margin: 0;
+			padding: 0;
+			background-image: url('space.jpg') ;
+			background-size: 100%;
+			background-attachment: scroll;
+			overflow: hidden;
+			color: white;	
+		}
+		
+		#level{
+			position:absolute;
+			z-index: 2;
+		}
+
+		#pause{
+			position: absolute;
+			left: 50px;
+			bottom: 0;
+			z-index: 2;
+		}
+
+		#mute{
+			position: absolute;
+			bottom: 0;
+			z-index: 2;
+		}
+
+	</STYLE>
+
+<script src="pixi.js"></script>
+<script src="WebGLRenderer.js"></script>
+
+</HEAD>
+
+<BODY>
+
+<div id="level">Level: 1 <br />Score: 0 <br><input type="button" id="play" value="Play" onClick="playGame();" /></div>   
+<input type="button" id="pause" value="Pause" onClick="pauseCheck();" />    
+<input type="button" id="mute" value="Mute" onClick="soundCheck();"/>                 
+
+
+	<script>
+
+	var Swidth=window.screen.width;
+	var Sheight=window.screen.height;
+
+	var bool=1;
+
+	var stage= new PIXI.Stage;
+	var renderer= new PIXI.autoDetectRenderer(Swidth,Sheight);
+
+	var chromeMusic=new Audio('background.wav');
+	var ieMusic= new Audio('background.mp3');
+
+	var background = PIXI.Texture.fromImage("background.png");
+	var background2= PIXI.Texture.fromImage("background2.png");
+	var Background = new PIXI.Sprite(background);
+	var Background1 = new PIXI.Sprite(background);
+
+	Background.scale.x=window.innerWidth/1080;
+	Background.scale.y=2*window.innerHeight/1920;
+	Background.position.y=-window.innerHeight;
+
+	Background1.scale.x=window.innerWidth/1080;
+	Background1.scale.y=2*window.innerHeight/1920;
+	Background1.position.y=-3*window.innerHeight;
+
+	stage.addChild(Background);
+	stage.addChild(Background1);
+
+	Background.position.y += 0.55;
+	Background1.position.y += 0.55;
+
+	var enemyCount = 0;
+	var BenemyCount = 0;
+	var score=0;
+
+	var enemiesToCreate;
+	var BenemiesToCreate;
+
+	var boolSound=1;
+	var boolPause=0;
+	
+
+	var plane= new PIXI.Texture.fromImage("plane.png");
+	var psprit= new PIXI.Sprite(plane);
+
+ 	psprit.anchor.x=0.35;
+ 	psprit.anchor.y=0.35;
+	psprit.position.x=Swidth/2;
+	psprit.position.y=Sheight-psprit.height;
+
+	stage.addChild(psprit);
+
+	var bullet = new PIXI.Texture.fromImage("bullet.png");
+	var enemy= new PIXI.Texture.fromImage("enemy.png");
+	var bigenemy= new PIXI.Texture.fromImage("bigenemy.png");
+	var explosion= new PIXI.Texture.fromImage("Explosion.png");
+	var plexplosion= new PIXI.Texture.fromImage("Explosion2.png");
+
+	//function is called when play button is pressed or when retry button is pressed
+	function playGame(){
+			document.body.appendChild(renderer.view); 
+			move(); 
+			requestAnimFrame(animate);
+	}
+
+	//function is called whenever pause button is pressed 
+	function pauseCheck(){
+		if(boolPause){
+			alert("Game Paused\n Press OK to resume");
+		}
+	}
+
+	//function called when mute button is pressed
+	function soundCheck(){
+		if (boolSound){
+			boolSound=0;
+		}
+		else{
+			boolSound=1;
+		}
+	}
+
+	//move the plane sprite accodring to mouse coordinates, create new bullets on click
+	//function is called when play button is pressed
+	function move(){
+		document.getElementsByTagName("canvas")[0].onmousemove=function(data){
+			psprit.position.x=window.event.clientX;
+			psprit.position.y=window.event.clientY;
+		} 
+	
+		document.getElementsByTagName("canvas")[0].onclick=function(data) { 
+			var BulletSoundChrome= new Audio('bullet.wav');
+			var BulletSoundIE = new Audio('bullet.mp3');
+			BulletSoundChrome.load();
+			BulletSoundIE.load();
+			stage.addChild(Bullet());
+			if (boolSound){
+				BulletSoundChrome.play();	
+				BulletSoundIE.play();
+			}
+		}
+	}
+
+	// create a new bullet
+	function Bullet(){
+		var tbullet=new PIXI.Sprite(bullet);
+		tbullet.height= tbullet.height/6;
+		tbullet.width= tbullet.width/4;
+		tbullet.position.x=psprit.position.x+7;
+		tbullet.position.y=psprit.position.y-70;
+		return tbullet;
+	}
+	
+	//create small enemy of level1
+	function Enemy(){
+		var penemy= new PIXI.Sprite(enemy);
+		penemy.height=penemy.height/3;
+		penemy.width=penemy.width/4;
+		penemy.position.x=Math.random()*(Swidth-55);
+		penemy.position.y=Math.random()*-Sheight*2;
+		return penemy;
+	}
+
+	//create big enemy of level2
+	function Benemy(){
+		var Benemy= new PIXI.Sprite(bigenemy);
+		Benemy.width=Benemy.width/1.35;
+		Benemy.height=Benemy.height/1.2;
+		Benemy.position.x=Math.random()*(Swidth-265);
+		Benemy.position.y=Math.random()*-Sheight*2;
+		Benemy.anchor.x=0;
+		Benemy.anchor.y=0;
+		return Benemy;
+	}
+
+	//explode all current enemies on stage after level before level2 starts
+	function terminate(){
+		for (var i=0;i<stage.children.length;i++){
+			if(stage.children[i].texture==enemy && stage.children[i].position.y>0 && bool){
+
+				var pexplosion= new PIXI.Sprite(explosion);
+				pexplosion.height=pexplosion.height/2;
+				pexplosion.width=pexplosion.width/2;
+				pexplosion.position.x=stage.children[i].position.x;
+				pexplosion.position.y=stage.children[i].position.y;
+			    pexplosion.anchor.x=0.1;
+				pexplosion.anchor.y=0.1;
+
+				var EexplodeChrome= new Audio('enemy.wav');
+				var EexplodeIE= new Audio('enemy.mp3');
+				EexplodeChrome.load();
+				EexplodeIE.load();
+				stage.addChild(pexplosion);
+				if(boolSound){
+						EexplodeChrome.play();
+						EexplodeIE.play();
+				}
+
+				stage.removeChild(stage.children[i]);
+				fade();
+
+			}
+		}
+	}
+
+	//creates a new stage for level2
+	function changeImage(){
+		if(bool){
+
+				bool=0;
+				stage= new PIXI.Stage;
+				enemyCount=0;
+				BenemyCount=0;
+				Background= new PIXI.Sprite(background2);
+				Background1= new PIXI.Sprite(background2);
+
+				Background.scale.x=window.innerWidth/720;
+				Background.scale.y=2*window.innerHeight/1231;
+				Background.position.y=-window.innerHeight;
+
+				Background1.scale.x=window.innerWidth/720;
+				Background1.scale.y=2*window.innerHeight/1231;
+				Background1.position.y=-3*window.innerHeight;
+
+	          	stage.addChild(Background);
+	          	stage.addChild(Background1);
+
+				Background.position.y += 0.55;
+				Background1.position.y += 0.55;
+
+				stage.addChild(psprit);
+				document.body.appendChild(renderer.view); 
+				move(); 
+
+		}
+	}
+
+	//checks if the plane is available on stage then request animated frame calling function animate, if the explosion of the plane is available then call the same function animate if the explosion is not transparent yet, if it is then pop a message of game over
+	function start(){
+		for(var k=0;k<stage.children.length;k++){
+					if(stage.children[k].texture==plane ){
+						   Background.position.y += 1;
+						   Background1.position.y += 1;
+							requestAnimFrame(animate);
+					}
+
+					else if(stage.children[k].texture==plexplosion){
+						
+						if(stage.children[k].alpha<0.03){
+							setTimeout('alert("Game Over")',250);
+
+							boolSound=0;
+							document.getElementById("pause").value="Retry";
+							document.getElementById("pause").onclick= function (data){
+								stage=new PIXI.Stage;
+								Background=new PIXI.Sprite(background);
+								Background.scale.x=window.innerWidth/1080;
+								Background.scale.y=2*window.innerHeight/1920;
+								Background.position.y=-window.innerHeight;
+
+								Background1.scale.x=window.innerWidth/1080;
+								Background1.scale.y=2*window.innerHeight/1920;
+								Background1.position.y=-3*window.innerHeight;
+
+								stage.addChild(Background);
+								stage.addChild(Background1);
+
+								Background.position.y += 1;
+								Background1.position.y += 1;
+
+								stage.addChild(psprit);
+								score=0;
+								bool=1;
+								enemyCount=0;
+								BenemyCount=0;
+								boolSound=1;
+								playGame();
+
+
+								document.getElementById("pause").value="Pause";
+								document.getElementById("pause").onclick= function(data){
+									boolPause=1;
+									pauseCheck();
+								}
+
+							}
+						}
+
+						else if(stage.children[k].alpha>0.03){
+							requestAnimFrame(animate);
+						}
+					}
+		}
+	}
+
+	//change the level and number and types of enemies depending on score.
+	function checkScore(){
+
+		if (score>=150){
+
+				terminate();
+				setTimeout("changeImage()",400);
+
+				BenemiesToCreate=Math.random()*6+1;
+				enemiesToCreate=Math.random()*6+1;
+				document.getElementById('level').innerHTML = 'Level: ' + 2 + '<br />Score: ' + score;
+
+				for(var i=0;i<enemiesToCreate && enemyCount<8;i++){
+					enemyCount++;
+					stage.addChild(Enemy());
+				}
+
+				for(var i=0;i<BenemiesToCreate && BenemyCount<10;i++){
+					BenemyCount++;
+					stage.addChild(Benemy());
+				}
+		}
+
+		else if (score<150){
+				enemiesToCreate = Math.random()*8 + 1;	
+				document.getElementById('level').innerHTML = 'Level: ' + 1 + '<br />Score: ' + score;
+
+				for(var i=0;i<enemiesToCreate && enemyCount<22;i++){
+					enemyCount++;
+					stage.addChild(Enemy());	
+				}				
+		}
+	}
+
+	//gradually setting the transparency of enemy and plane explosions
+	function fade(){
+		for(var i=0; i<stage.children.length;i++){
+			if(stage.children[i].texture==explosion && stage.children[i].alpha>0.025){
+				stage.children[i].alpha-=0.025;
+			}
+
+			else if(stage.children[i].texture==plexplosion && stage.children[i].alpha>0.025){
+				stage.children[i].alpha-=0.025;
+			}
+		} 
+	}
+
+	//play background music
+	function bcheck(){
+		if(boolSound){
+			chromeMusic.play();
+			ieMusic.play();
+		}
+		else{
+			chromeMusic.pause();
+			ieMusic.pause();
+		}
+	}
+
+	function animate(){
+
+		boolPause=1;
+
+		start();
+		checkScore();
+		bcheck();
+		pcheck();
+		fade();
+
+		ebmove();
+		bigEnemyhit();
+		enemyPlanehit();
+		removeExp();
+
+
+		if (Background.position.y>=window.innerHeight){
+			Background.position.y=-3*window.innerHeight;
+		}
+		else if(Background1.position.y>=window.innerHeight){
+			Background1.position.y=-3*window.innerHeight;
+		}
+		
+
+		//check if any two enemies are overlapped remove one of them and decrement the enemy count
+		function pcheck(){
+			for(var i=0;i<stage.children.length;i++){
+				for(var j=0;j<stage.children.length;j++){
+					if(stage.children[i] && stage.children[j]){
+
+						if((stage.children[i].texture==enemy || stage.children[i].texture==bigenemy) && (stage.children[j].texture==enemy || stage.children[j].texture==bigenemy) && stage.children[i].position.y-stage.children[i].height/2>=stage.children[j].position.y-stage.children[j].height/2 && stage.children[i].position.y-stage.children[i].height/2<=stage.children[j].position.y+stage.children[j].height/2 && ( (stage.children[i].position.x-stage.children[i].width/2>=stage.children[j].position.x-stage.children[j].width/2 && stage.children[i].position.x-stage.children[i].width/2<=stage.children[j].position.x+stage.children[j].width/2)||(stage.children[i].position.x+stage.children[i].width/2>=stage.children[j].position.x-stage.children[j].width/2 && stage.children[i].position.x+stage.children[i].width/2<=stage.children[j].position.x+stage.children[j].width/2)) && stage.children[i]!=stage.children[j]){
+
+								if(stage.children[i].texture==enemy){
+									stage.removeChild(stage.children[i]);
+									enemyCount--;
+								}
+								else if(stage.children[i].texture==bigenemy){
+									stage.removeChild(stage.children[i]);
+									BenemyCount--;
+								}
+						}
+					}
+				}
+			}
+		}
+
+
+		//if the child on stage is a bullet then move it up in the -ve y direction. if it is enemy then move it down in the +ve y direction until it reaches the bottom of the screen then remove it , same with the big enemy	
+		function ebmove(){
+			for(var i=0; i<stage.children.length;i++){
+
+				if(stage.children[i].texture==bullet){
+					stage.children[i].position.y-=8;
+
+					if((stage.children[i].position.y+stage.children[i].height/2)<=0){
+						stage.removeChild(stage.children[i]);
+					}	
+				}
+
+				else if (stage.children[i].texture==enemy){
+					 	stage.children[i].position.y+=3;
+
+						if (stage.children[i].position.y>=Sheight) {
+							enemyCount--;
+							stage.removeChild(stage.children[i]);
+						}
+				}
+
+				else if(stage.children[i].texture==bigenemy){
+					stage.children[i].position.y+=3;
+
+				 	if (stage.children[i].position.y>=Sheight) {
+						BenemyCount--;
+						stage.removeChild(stage.children[i]);
+					}
+				}
+			}
+		}
+
+		//check the coordinates of the bigenemy and bullet and if they hit for the first time remove bullet , if the second time then explode the enemy and remove both enemy and bullet.
+		function bigEnemyhit(){
+			for (var i=0;i<stage.children.length;i++){
+				for(var j=0;j<stage.children.length;j++){
+				
+					if( stage.children[i].texture==bullet && stage.children[j].texture==bigenemy &&  stage.children[j].alpha==0.8 && stage.children[i].position.y>=stage.children[j].position.y && stage.children[i].position.y<=(stage.children[j].position.y+stage.children[j].height) && stage.children[i].position.x>=(stage.children[j].position.x) && stage.children[i].position.x<=(stage.children[j].position.x+stage.children[j].width) ) {
+											var pexplosion= new PIXI.Sprite(explosion);
+											pexplosion.position.x=stage.children[j].position.x;
+											pexplosion.position.y=stage.children[j].position.y;
+											pexplosion.anchor.y=0.1;
+
+											var EexplodeChrome= new Audio('enemy.wav');
+											var EexplodeIE= new Audio('enemy.mp3');
+											EexplodeChrome.load();
+											EexplodeIE.load();
+											stage.addChild(pexplosion);
+											if(boolSound){
+												EexplodeChrome.play();
+												EexplodeIE.play();
+											}
+
+											stage.removeChild(stage.children[i]);
+											stage.removeChild(stage.children[j]);
+											score+=20;
+
+											BenemyCount--;		
+					}
+
+					else if( stage.children[i].texture==bullet && stage.children[j].texture==bigenemy &&  stage.children[j].alpha==1 && stage.children[i].position.y>=stage.children[j].position.y && stage.children[i].position.y<=(stage.children[j].position.y+stage.children[j].height) && stage.children[i].position.x>=(stage.children[j].position.x) && stage.children[i].position.x<=(stage.children[j].position.x+stage.children[j].width) ) {
+											stage.removeChild(stage.children[i]);
+											stage.children[j].alpha=0.8;
+					}
+				}
+			}
+		}
+
+		//check the coordinates of the enemy and bullet and if they hit then explode the enemy and remove both enemy and bullet, else if the enemy and the plane hit explode the plane and remove both plane and enemy
+		function enemyPlanehit() {
+			for(var i=0; i<stage.children.length;i++){
+				for(var j=0; j<stage.children.length;j++){
+					if(stage.children[i] && stage.children[j]){
+
+						if(stage.children[i].texture==bullet && stage.children[j].texture==enemy && stage.children[i].position.y>=stage.children[j].position.y && stage.children[i].position.y<=(stage.children[j].position.y+stage.children[j].height/2) && stage.children[i].position.x>=(stage.children[j].position.x-stage.children[j].width/2) && stage.children[i].position.x<=(stage.children[j].position.x+stage.children[j].width) )   {
+
+										var pexplosion= new PIXI.Sprite(explosion);
+										pexplosion.height=pexplosion.height/2;
+										pexplosion.width=pexplosion.width/2;
+										pexplosion.position.x=stage.children[j].position.x;
+										pexplosion.position.y=stage.children[j].position.y;
+										pexplosion.anchor.x=0.1;
+										pexplosion.anchor.y=0.1;
+
+										var EexplodeChrome= new Audio('enemy.wav');
+										var EexplodeIE= new Audio('enemy.mp3');
+										EexplodeChrome.load();
+										EexplodeIE.load();
+										stage.addChild(pexplosion);
+										if(boolSound){
+											EexplodeChrome.play();
+											EexplodeIE.play();
+										}
+
+										stage.removeChild(stage.children[i]);
+										stage.removeChild(stage.children[j]);
+
+										score+=10;
+										enemyCount--; 
+						} 
+
+						else if (stage.children[i].texture==enemy && stage.children[j].texture==plane && (((stage.children[i].position.y+stage.children[i].height/2)>=(stage.children[j].position.y-stage.children[j].height/2) && (stage.children[i].position.y+stage.children[i].height/2)<=(stage.children[j].position.y+stage.children[j].height/2)) || ((stage.children[i].position.y-stage.children[i].height/2)<=(stage.children[j].position.y+stage.children[j].height/2) && (stage.children[i].position.y-stage.children[i].height/2)>=(stage.children[j].position.y-stage.children[j].height/2))) && ( ((stage.children[i].position.x-(stage.children[i].width/2))<=(stage.children[j].position.x+stage.children[j].width/2) && ((stage.children[i].position.x-stage.children[i].width/2)>= (stage.children[j].position.x-stage.children[j].width/2))) || ((stage.children[i].position.x+stage.children[i].width/2)>=(stage.children[j].position.x-stage.children[j].width/2) && (stage.children[i].position.x+stage.children[i].width/2) <= (stage.children[j].position.x+stage.children[j].width/2) )) ) {
+
+										var Plexplosion= new PIXI.Sprite(plexplosion);
+										Plexplosion.position.x=stage.children[j].position.x;
+										Plexplosion.position.y=stage.children[j].position.y;
+										Plexplosion.anchor.x=0.35;
+										Plexplosion.anchor.y=0.35;
+
+										var pexplosion= new PIXI.Sprite(explosion);
+										pexplosion.height=pexplosion.height/2;
+										pexplosion.width=pexplosion.width/2;
+										pexplosion.position.x=stage.children[i].position.x;
+										pexplosion.position.y=stage.children[i].position.y;
+										pexplosion.anchor.x=0.1;
+										pexplosion.anchor.y=0.1;
+
+										var PexplodeChrome=new Audio('plane.wav');
+										var PexplodeIE=new Audio('plane.mp3');
+										PexplodeChrome.load();
+										PexplodeIE.load();
+										stage.addChild(Plexplosion);
+										if(boolSound){
+											PexplodeChrome.play();
+											PexplodeIE.play();
+										}
+
+										var EexplodeChrome= new Audio('enemy.wav');
+										var EexplodeIE= new Audio('enemy.mp3');
+										EexplodeChrome.load();
+										EexplodeIE.load();
+										stage.addChild(pexplosion);
+										if(boolSound){
+											EexplodeChrome.play();
+											EexplodeIE.play();
+										}
+
+										stage.removeChild(stage.children[i]);
+										stage.removeChild(stage.children[j]);
+						}
+
+						else if (stage.children[i].texture==bigenemy && stage.children[j].texture==plane && ( (stage.children[j].position.y-stage.children[j].height/2<= stage.children[i].position.y+stage.children[i].height && stage.children[j].position.y-stage.children[j].height/2 >= stage.children[i].position.y) || (stage.children[j].position.y+stage.children[j].height/2<= stage.children[i].position.y+stage.children[i].height && stage.children[j].position.y+stage.children[j].height/2 >= stage.children[i].position.y) ) && ((stage.children[j].position.x+stage.children[j].width/2 <=stage.children[i].position.x+stage.children[i].width && stage.children[j].position.x+stage.children[j].width/2 >= stage.children[i].position.x) || (stage.children[j].position.x-stage.children[j].width/2 <=stage.children[i].position.x+stage.children[i].width && stage.children[j].position.x-stage.children[j].width/2 >= stage.children[i].position.x ) )) {
+
+										var Plexplosion= new PIXI.Sprite(plexplosion);
+										Plexplosion.position.x=stage.children[j].position.x;
+										Plexplosion.position.y=stage.children[j].position.y;
+										Plexplosion.anchor.x=0.35;
+										Plexplosion.anchor.y=0.35;
+
+										var pexplosion= new PIXI.Sprite(explosion);
+										pexplosion.position.x=stage.children[i].position.x;
+										pexplosion.position.y=stage.children[i].position.y;
+										pexplosion.anchor.x=0;
+										pexplosion.anchor.y=0;
+
+										var PexplodeChrome=new Audio('plane.wav');
+										var PexplodeIE=new Audio('plane.mp3');
+										PexplodeChrome.load();
+										PexplodeIE.load();
+										stage.addChild(Plexplosion);
+										if(boolSound){
+											PexplodeChrome.play();
+											PexplodeIE.play();
+										}
+
+										var EexplodeChrome= new Audio('enemy.wav');
+										var EexplodeIE= new Audio('enemy.mp3');
+										EexplodeChrome.load();
+										EexplodeIE.load();
+										stage.addChild(pexplosion);
+										if(boolSound){
+											EexplodeChrome.play();
+											EexplodeIE.play();
+										}
+
+										stage.removeChild(stage.children[i]);
+										stage.removeChild(stage.children[j]);
+						}
+					}
+				}
+			}
+		}
+
+		//remove explosion textures from stage
+		function removeExp(){
+			for(var i=0;i<stage.children.length;i++){
+				if (stage.children[i].texture==explosion && stage.children[i].alpha<0.03){
+						stage.removeChild(stage.children[i]);
+				}
+			}
+		}
+	
+		renderer.render(stage);
+	}
+	
+	</script>
+</BODY>
+</HTML>
